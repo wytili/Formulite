@@ -1,9 +1,12 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QWidget, QStackedWidget, QHBoxLayout,
+from PyQt5.QtCore import Qt, QByteArray, QBuffer, QTimer
+from PyQt5.QtWidgets import (QWidget, QStackedWidget, QHBoxLayout, QApplication,
                              QVBoxLayout, QFileDialog, QMessageBox)
 from qfluentwidgets import FluentIcon, SegmentedToggleToolWidget, PlainTextEdit, ImageLabel, \
-    BodyLabel, HeaderCardWidget, SimpleCardWidget, PushButton, PrimaryPushButton
-from PyQt5.QtGui import QPainter, QPen, QPixmap
+    BodyLabel, HeaderCardWidget, SimpleCardWidget, PushButton, PrimaryPushButton, InfoBar
+from PyQt5.QtGui import QPainter, QPen, QPixmap, QImage, QFont, QKeySequence
+
+from config import cfg
+from ocr_services import OCRClient
 
 class RecognitionInterface(QWidget):
     def __init__(self):
@@ -11,10 +14,26 @@ class RecognitionInterface(QWidget):
         self.setObjectName("Recognition-Interface")
         layout = QVBoxLayout()
         self.input = InputCard1()
+        self.input.setFocus()
         self.output = OutputCard1()
         layout.addWidget(self.input)
         layout.addWidget(self.output)
         self.setLayout(layout)
+        QTimer.singleShot(0, self.input.uploadInterface.setFocus)
+
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.Paste):
+            self.pasteImageFromClipboard()
+        else:
+            super().keyPressEvent(event)
+
+    def pasteImageFromClipboard(self):
+        clipboard = QApplication.clipboard()
+        mimeData = clipboard.mimeData()
+        if mimeData.hasImage():
+            image = QImage(mimeData.imageData())
+            if not image.isNull():
+                self.input.uploadInterface.setImage(image)
 
 
 class InputCard1(HeaderCardWidget):
@@ -22,11 +41,11 @@ class InputCard1(HeaderCardWidget):
     def __init__(self):
         super().__init__()
         self.setTitle("Input")
-
         self.pivot = SegmentedToggleToolWidget(self)
         self.stackedWidget = QStackedWidget(self)
 
         self.uploadInterface = UploadBox()
+        self.uploadInterface.setFocus()
         self.uploadInterface.setFixedHeight(200)
         self.handwritingInterface = HandwritingBoard()
 
@@ -42,15 +61,22 @@ class InputCard1(HeaderCardWidget):
 
         self.viewLayout.addLayout(contentLayout)
         self.clearButton = PushButton(FluentIcon.DELETE, 'Clear')
-        self.recognizeButton = PrimaryPushButton(FluentIcon.SEARCH, 'Recognize')
+        self.recognizeButton = PrimaryPushButton(FluentIcon.VIEW, 'Recognize')
         self.clearButton.setFixedWidth(150)
         self.recognizeButton.setFixedWidth(150)
+
+        self.clearButton.clicked.connect(self.clearCurrentWidget)
+        self.recognizeButton.clicked.connect(self.recognizeContent)
+
         buttonsLayout_action = QHBoxLayout()
         buttonsLayout_action.addWidget(self.clearButton)
         buttonsLayout_action.addWidget(self.recognizeButton)
 
         contentLayout.addLayout(buttonsLayout_action)
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentIndex(0)
+        initialWidget = self.stackedWidget.currentWidget()
+        self.pivot.setCurrentItem(initialWidget.objectName())
 
     def addSubInterface(self, widget: QWidget, objectName, icon):
         widget.setObjectName(objectName)
@@ -65,15 +91,77 @@ class InputCard1(HeaderCardWidget):
         widget = self.stackedWidget.widget(index)
         self.pivot.setCurrentItem(widget.objectName())
 
+    def clearCurrentWidget(self):
+        currentIndex = self.stackedWidget.currentIndex()
+        if currentIndex == 0:  # UploadBox
+            self.uploadInterface.clearContent()
+        elif currentIndex == 1:   # HandwritingBoard
+            self.handwritingInterface.clearContent()
+
+    def recognizeContent(self):
+        self.parent().output.textEdit.clear()
+        currentWidget = self.stackedWidget.currentWidget()
+        image_bytes = None
+        # at upload interface
+        if isinstance(currentWidget, UploadBox):
+            image_bytes = currentWidget.getImageAsBytes()
+        # at handwriting interface
+        elif isinstance(currentWidget, HandwritingBoard):
+            image_bytes = currentWidget.getDrawingAsBytes()
+
+        if image_bytes:
+            service = f"{cfg.apiService.value}"
+            access_key_id = cfg.apiId.value
+            access_key_secret = cfg.apiKey.value
+            if not access_key_id or not access_key_secret:
+                InfoBar.warning(
+                    title='API Info Required',
+                    content="Please fill in valid API ID and Key in the settings.",
+                    parent=self.parent()
+                ).show()
+                return
+
+            try:
+                print(service)
+                print(access_key_id)
+                print(access_key_secret)
+                ocr_client = OCRClient(service, id=access_key_id,
+                                       key=access_key_secret)
+                print(ocr_client)
+                recognition_result = ocr_client.recognizeText(image_bytes)
+                print(recognition_result)
+                if recognition_result['status']:
+                    self.parent().output.displayRecognitionResult(recognition_result)
+                else:
+                    InfoBar.error(
+                        title='Recognition Failed',
+                        content='Please check the Network and API settings.',
+                        parent=self.parent()
+                    ).show()
+            except ValueError as e:
+                InfoBar.error(
+                    title='Error',
+                    content=str(e),
+                    parent=self.parent()
+                ).show()
+        else:
+            InfoBar.warning(
+                title='Empty',
+                content="No content to recognize.",
+                parent=self.parent()
+            ).show()
+
+
 class UploadBox(SimpleCardWidget):
     def __init__(self, parent=None):
         super(UploadBox, self).__init__(parent)
         self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.StrongFocus)
+        self.currentImage = None
         self.initUI()
 
     def initUI(self):
-        self.textLabel = BodyLabel("Click to Upload / Drag & Drop \n an Image Here", self)
+        self.textLabel = BodyLabel("Click to Upload / Drag & Drop / Paste (Ctrl + V) \n an Image Here", self)
         self.textLabel.setAlignment(Qt.AlignCenter)
 
         self.imageLabel = ImageLabel(parent=self)
@@ -93,24 +181,30 @@ class UploadBox(SimpleCardWidget):
 
     def dropEvent(self, event):
         mimeData = event.mimeData()
-        pixmap = QPixmap()
         if mimeData.hasImage():
-            pixmap = QPixmap(mimeData.imageData())
+            self.currentImage = mimeData.imageData()
         elif mimeData.hasUrls():
-            for url in mimeData.urls():
-                file_path = url.toLocalFile()
-                pixmap = QPixmap(file_path)
-                break
-        if not pixmap.isNull():
-            self.switchToImageLabel(pixmap)
+            url = mimeData.urls()[0].toLocalFile()
+            self.currentImage = QImage(url)
+        if self.currentImage and not self.currentImage.isNull():
+            self.switchToImageLabel(QPixmap.fromImage(self.currentImage))
         event.accept()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             fileName, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)")
             if fileName:
-                pixmap = QPixmap(fileName)
+                # load image from path
+                image = QImage(fileName)
+                self.currentImage = image
+                pixmap = QPixmap.fromImage(image)
                 self.switchToImageLabel(pixmap)
+
+    def setImage(self, image):
+        if isinstance(image, QImage) and not image.isNull():
+            self.currentImage = image
+            pixmap = QPixmap.fromImage(image)
+            self.switchToImageLabel(pixmap)
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -128,11 +222,28 @@ class UploadBox(SimpleCardWidget):
             QMessageBox.warning(self, "Image Load Error", "Could not load the image.")
             return
 
-        scaledPixmap = self.scaleToSize(pixmap, 520, 180)
+        scaledPixmap = self.scaleToSize(pixmap, 510, 180)
 
         self.imageLabel.setPixmap(scaledPixmap)
         self.textLabel.setVisible(False)
         self.imageLabel.setVisible(True)
+
+    def clearContent(self):
+        self.imageLabel.clear()
+        self.currentImage = None
+        self.textLabel.setVisible(True)
+        self.imageLabel.setVisible(False)
+
+    def getImageAsBytes(self):
+        # transform current image to QByteArray
+        if self.currentImage is None or self.currentImage.isNull():
+            return None  # invalid image
+
+        byte_array = QByteArray()
+        buffer = QBuffer(byte_array)
+        buffer.open(QBuffer.WriteOnly)
+        self.currentImage.save(buffer, 'PNG')
+        return byte_array.data()
 
 
 class HandwritingBoard(SimpleCardWidget):
@@ -141,6 +252,8 @@ class HandwritingBoard(SimpleCardWidget):
         self.path = []
         self.last_point = None
         self.setMouseTracking(True)
+        self.total_drawn_length = 0  # total length of drawn path
+
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -151,6 +264,7 @@ class HandwritingBoard(SimpleCardWidget):
         if event.buttons() & Qt.LeftButton and self.last_point is not None:
             new_point = event.pos()
             self.path[-1].append(new_point)
+            self.total_drawn_length += (new_point - self.last_point).manhattanLength()
             self.last_point = new_point
             self.update()
 
@@ -169,21 +283,86 @@ class HandwritingBoard(SimpleCardWidget):
                 for i in range(len(segment) - 1):
                     painter.drawLine(segment[i], segment[i + 1])
 
+    def draw(self, painter):
+        painter.setPen(QPen(Qt.black, 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        for segment in self.path:
+            for i in range(1, len(segment)):
+                painter.drawLine(segment[i-1], segment[i])
+
+    def getDrawingAsBytes(self):
+        if not self.path or self.total_drawn_length < 10:
+            return None
+
+        image = QImage(self.size(), QImage.Format_ARGB32)
+        image.fill(Qt.white)
+
+        painter = QPainter(image)
+        self.draw(painter)
+        painter.end()
+
+        buffer = QBuffer()
+        buffer.open(QBuffer.WriteOnly)
+        image.save(buffer, "PNG")
+
+        return bytes(buffer.data())
+
+    def clearContent(self):
+        self.path = []
+        self.total_drawn_length = 0
+        self.update()
+
 class OutputCard1(HeaderCardWidget):
     def __init__(self):
         super().__init__()
         self.setTitle('Output')
 
         contentLayout = QVBoxLayout()
-        textEdit = PlainTextEdit()
-        textEdit.setReadOnly(True)
-        contentLayout.addWidget(textEdit)
+        self.textEdit = PlainTextEdit()
+        self.textEdit.setReadOnly(True)
+        font = QFont()
+        font.setFamily("Consolas")
+        font.setPointSize(15)
+        self.textEdit.setFont(font)
+        contentLayout.addWidget(self.textEdit)
 
         self.copyButton = PushButton(FluentIcon.COPY, 'Copy')
         self.copyButton.setFixedWidth(150)
+        self.copyButton.clicked.connect(self.copyResult)
         buttonLayout = QHBoxLayout()
         buttonLayout.addWidget(self.copyButton, 0, Qt.AlignCenter)
 
         contentLayout.addLayout(buttonLayout)
 
         self.viewLayout.addLayout(contentLayout)
+
+    def displayRecognitionResult(self, recognition_result):
+        results = recognition_result.get('results', [])
+        detected_texts = []  # store all detected texts
+
+        for result in results:
+            if isinstance(result, dict):  # check if the result is a dict
+                text = result.get('DetectedText', '')
+                detected_texts.append(text)
+            elif isinstance(result, str):  # check if the result is a string
+                detected_texts.append(result)
+
+        result_text = "\n".join(detected_texts)
+
+        self.textEdit.setPlainText(result_text)
+
+    def copyResult(self):
+        text = self.textEdit.toPlainText()
+        if text.strip():  # check if there is any text
+            clipboard = QApplication.clipboard()
+            clipboard.setText(text)
+            InfoBar.success(
+                title='Copied',
+                content="Text copied to clipboard.",
+                parent=self.parent()
+            ).show()
+        else:
+            InfoBar.warning(
+                title='No Text',
+                content="There is no text to copy.",
+                parent=self.parent()
+            ).show()

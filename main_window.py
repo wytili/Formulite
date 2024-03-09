@@ -3,12 +3,15 @@ from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QStackedWidget, QHBoxLayout, QLabel, QWidget, QVBoxLayout
 
-from qfluentwidgets import (NavigationItemPosition, MessageBox,isDarkTheme, setTheme, Theme,
-                            setThemeColor, NavigationToolButton, NavigationPanel)
+from qfluentwidgets import (NavigationItemPosition, isDarkTheme, setTheme, Theme, NavigationToolButton, NavigationPanel,
+                            qconfig)
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
+
+from config import cfg
 from recognition import RecognitionInterface
 from preview import PreviewInterface
+from settings import SettingInterface
 
 
 class Widget(QWidget):
@@ -59,8 +62,9 @@ class NavigationBar(QWidget):
 
     def addItem(self, routeKey, icon, text: str, onClick, selectable=True, position=NavigationItemPosition.TOP):
         def wrapper():
-            onClick()
-            self.setTitle(text)
+            shouldSetTitle = onClick()
+            if shouldSetTitle is not False:
+                self.setTitle(text)
 
         self.navigationPanel.addItem(
             routeKey, icon, text, wrapper, selectable, position)
@@ -86,31 +90,21 @@ class Window(FramelessWindow):
         super().__init__()
         self.setTitleBar(StandardTitleBar(self))
 
-        # use dark theme mode
-        # setTheme(Theme.DARK)
-
-        # change the theme color
-        setThemeColor('#0078d4')
-
         self.vBoxLayout = QVBoxLayout(self)
         self.navigationInterface = NavigationBar(self)
         self.stackWidget = QStackedWidget(self)
 
-        current_theme = Theme.DARK if isDarkTheme() else Theme.LIGHT
+        cfg.themeChanged.connect(self.onThemeChanged)
 
         # create sub interface
         self.recognitionInterface = RecognitionInterface()
-        self.previewInterface = PreviewInterface(current_theme)
-        self.aboutInterface = Widget('About Interface', self)
-        self.historyInterface = Widget('History', self)
-        self.helpInterface = Widget('Help Interface', self)
-        self.settingInterface = Widget('Setting Interface', self)
+        self.previewInterface = PreviewInterface()
+        self.historyInterface = Widget('To be finished...', self)
+        self.settingInterface = SettingInterface()
 
         self.stackWidget.addWidget(self.recognitionInterface)
         self.stackWidget.addWidget(self.previewInterface)
         self.stackWidget.addWidget(self.historyInterface)
-        self.stackWidget.addWidget(self.aboutInterface)
-        self.stackWidget.addWidget(self.helpInterface)
         self.stackWidget.addWidget(self.settingInterface)
 
         # initialize layout
@@ -133,8 +127,14 @@ class Window(FramelessWindow):
         self.addSubInterface(self.previewInterface, FIF.COMMAND_PROMPT, 'Formula Preview')
         self.addSubInterface(self.historyInterface, FIF.HISTORY, 'History')
         # add item to bottom
-        self.addSubInterface(self.aboutInterface, FIF.INFO, 'About', NavigationItemPosition.BOTTOM)
-        self.addSubInterface(self.helpInterface, FIF.HELP, 'Help', NavigationItemPosition.BOTTOM)
+        self.navigationInterface.addItem(
+            routeKey='switch-theme',
+            icon=FIF.CONSTRACT,
+            text='Switch Theme',
+            onClick=self.switchTheme,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM
+        )
         self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
 
         self.stackWidget.currentChanged.connect(self.onCurrentInterfaceChanged)
@@ -164,11 +164,6 @@ class Window(FramelessWindow):
 
         self.setQss()
 
-    def setQss(self):
-        color = 'dark' if isDarkTheme() else 'light'
-        with open(f'resource/{color}/demo.qss', encoding='utf-8') as f:
-            self.setStyleSheet(f.read())
-
     def switchTo(self, widget):
         self.stackWidget.setCurrentWidget(widget)
 
@@ -176,14 +171,19 @@ class Window(FramelessWindow):
         widget = self.stackWidget.widget(index)
         self.navigationInterface.setCurrentItem(widget.objectName())
 
-    def showMessageBox(self):
-        m = MessageBox(
-            'This is a help message',
-            'You clicked a customized navigation widget. You can add more custom widgets by calling '
-            '`NavigationInterface.addWidget()` 😉',
-            self
-        )
-        m.exec()
+    def switchTheme(self):
+        newTheme = Theme.LIGHT if isDarkTheme() else Theme.DARK
+        qconfig.set(qconfig.themeMode, newTheme)
+        return False
+
+    def onThemeChanged(self, theme: Theme):
+        setTheme(theme)
+        self.setQss()
+
+    def setQss(self):
+        color = 'dark' if isDarkTheme() else 'light'
+        with open(f'resource/{color}/demo.qss', encoding='utf-8') as f:
+            self.setStyleSheet(f.read())
 
 
 if __name__ == '__main__':

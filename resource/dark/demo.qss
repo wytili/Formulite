@@ -49,3 +49,13 @@ CloseButton {
     qproperty-normalBackgroundColor: transparent;
 }
 
+SettingInterface, #scrollWidget {
+    background-color: rgb(39, 39, 39);
+}
+
+QScrollArea {
+    border: none;
+    background-color: rgb(39, 39, 39);
+}
+
+

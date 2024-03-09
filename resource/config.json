@@ -1,0 +1,15 @@
+{
+    "API": {
+        "ID": "",
+        "Key": "",
+        "Service": "Aliyun"
+    },
+    "MainWindow": {
+        "Language": "Auto",
+        "MinimizeToTray": true
+    },
+    "QFluentWidgets": {
+        "ThemeColor": "#ff0078d4",
+        "ThemeMode": "Light"
+    }
+}
