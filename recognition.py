@@ -7,6 +7,8 @@ from PyQt5.QtGui import QPainter, QPen, QPixmap, QImage, QFont, QKeySequence
 
 from config import cfg
 from ocr_services import OCRClient
+from settings import decrypt_text
+
 
 class RecognitionInterface(QWidget):
     def __init__(self):
@@ -95,7 +97,7 @@ class InputCard1(HeaderCardWidget):
         currentIndex = self.stackedWidget.currentIndex()
         if currentIndex == 0:  # UploadBox
             self.uploadInterface.clearContent()
-        elif currentIndex == 1:   # HandwritingBoard
+        elif currentIndex == 1:  # HandwritingBoard
             self.handwritingInterface.clearContent()
 
     def recognizeContent(self):
@@ -112,7 +114,7 @@ class InputCard1(HeaderCardWidget):
         if image_bytes:
             service = f"{cfg.apiService.value}"
             access_key_id = cfg.apiId.value
-            access_key_secret = cfg.apiKey.value
+            access_key_secret = decrypt_text(cfg.apiKey.value)
             if not access_key_id or not access_key_secret:
                 InfoBar.warning(
                     title='API Info Required',
@@ -122,14 +124,9 @@ class InputCard1(HeaderCardWidget):
                 return
 
             try:
-                print(service)
-                print(access_key_id)
-                print(access_key_secret)
                 ocr_client = OCRClient(service, id=access_key_id,
                                        key=access_key_secret)
-                print(ocr_client)
                 recognition_result = ocr_client.recognizeText(image_bytes)
-                print(recognition_result)
                 if recognition_result['status']:
                     self.parent().output.displayRecognitionResult(recognition_result)
                 else:
@@ -254,7 +251,6 @@ class HandwritingBoard(SimpleCardWidget):
         self.setMouseTracking(True)
         self.total_drawn_length = 0  # total length of drawn path
 
-
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.last_point = event.pos()
@@ -287,7 +283,7 @@ class HandwritingBoard(SimpleCardWidget):
         painter.setPen(QPen(Qt.black, 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
         for segment in self.path:
             for i in range(1, len(segment)):
-                painter.drawLine(segment[i-1], segment[i])
+                painter.drawLine(segment[i - 1], segment[i])
 
     def getDrawingAsBytes(self):
         if not self.path or self.total_drawn_length < 10:
@@ -310,6 +306,7 @@ class HandwritingBoard(SimpleCardWidget):
         self.path = []
         self.total_drawn_length = 0
         self.update()
+
 
 class OutputCard1(HeaderCardWidget):
     def __init__(self):

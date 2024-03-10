@@ -1,10 +1,10 @@
 import sys
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QTimer, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QStackedWidget, QHBoxLayout, QLabel, QWidget, QVBoxLayout
 
 from qfluentwidgets import (NavigationItemPosition, isDarkTheme, setTheme, Theme, NavigationToolButton, NavigationPanel,
-                            qconfig)
+                            qconfig, SplashScreen)
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
@@ -88,6 +88,13 @@ class Window(FramelessWindow):
 
     def __init__(self):
         super().__init__()
+
+        self.splashScreen = SplashScreen(QIcon('resource/logo.png'), self)
+        self.splashScreen.setIconSize(QSize(100, 100))
+        self.splashScreen.show()
+
+        QApplication.processEvents()
+
         self.setTitleBar(StandardTitleBar(self))
 
         self.vBoxLayout = QVBoxLayout(self)
@@ -112,6 +119,9 @@ class Window(FramelessWindow):
 
         # add items to navigation interface
         self.initNavigation()
+
+        # animation duration
+        QTimer.singleShot(1600, self.splashScreen.close)
 
         self.initWindow()
 

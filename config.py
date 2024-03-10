@@ -48,5 +48,3 @@ VERSION = "1.0"
 
 cfg = Config()
 qconfig.load('resource/config.json', cfg)
-
-

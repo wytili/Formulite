@@ -151,4 +151,3 @@ class OCRClient:
             return {"status": True, "results": result['result']}
         else:
             return {"status": False, "message": result['message']}
-

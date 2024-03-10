@@ -1,12 +1,14 @@
 from typing import Union
+from cryptography.fernet import Fernet
+import os
 
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QIcon, QColor, QDesktopServices
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QHBoxLayout, QLabel, QButtonGroup, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QButtonGroup, QPushButton
 from qfluentwidgets import (ScrollArea, SettingCardGroup, OptionsSettingCard, SwitchSettingCard,
                             HyperlinkCard, PrimaryPushSettingCard, RadioButton, setTheme, setThemeColor, isDarkTheme,
                             LineEdit, PasswordLineEdit, ExpandGroupSettingCard, OptionsConfigItem,
-                             Theme, ExpandLayout, ColorDialog, qconfig,
+                            Theme, ExpandLayout, ColorDialog, qconfig,
                             ColorConfigItem, FluentIconBase)
 from qfluentwidgets import FluentIcon as FIF
 
@@ -14,7 +16,6 @@ from config import cfg, API, EMAIL, URL, AUTHOR, VERSION, YEAR
 
 
 class SettingInterface(ScrollArea):
-
     minimizeToTrayChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
@@ -117,7 +118,6 @@ class SettingInterface(ScrollArea):
         self.__connectSignalToSlot()
 
     def __initLayout(self):
-
         # add cards to group
         self.personalizationGroup.addSettingCard(self.themeCard)
         self.personalizationGroup.addSettingCard(self.themeColorCard)
@@ -149,12 +149,13 @@ class SettingInterface(ScrollArea):
     def __connectSignalToSlot(self):
         cfg.themeChanged.connect(self.__onThemeChanged)
         self.themeColorCard.colorChanged.connect(setThemeColor)
-    #     self.languageCard.optionChanged.connect(self.onLanguageChanged)
+        #     self.languageCard.optionChanged.connect(self.onLanguageChanged)
         self.minimizeToTrayCard.checkedChanged.connect(self.minimizeToTrayChanged)
         self.feedbackCard.clicked.connect(lambda: QDesktopServices.openUrl(
             QUrl(f"mailto:{EMAIL}?subject=Formulite%20Feedback&body=Here%20is%20my%20feedback%20about"
                  "%20Formulite: ")))
         self.aboutCard.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(URL)))
+
 
 class APIConfigSettingCard(ExpandGroupSettingCard):
     def __init__(self, configItem: OptionsConfigItem, icon: Union[str, QIcon], title: str, content=None, parent=None):
@@ -191,7 +192,7 @@ class APIConfigSettingCard(ExpandGroupSettingCard):
         self.choiceLabel.adjustSize()
 
         self.apiIdInput.setText(cfg.apiId.value)
-        self.apiKeyInput.setText(cfg.apiKey.value)
+        self.apiKeyInput.setText(decrypt_text(cfg.apiKey.value))
 
         # Connect signals
         self.setValue(cfg.get(self.configItem))
@@ -245,7 +246,8 @@ class APIConfigSettingCard(ExpandGroupSettingCard):
         cfg.set(cfg.apiId, text)
 
     def __onApiKeyTextChanged(self, text: str):
-        cfg.set(cfg.apiKey, text)
+        encrypted_key = encrypt_text(text)
+        cfg.set(cfg.apiKey, encrypted_key)
 
     def setValue(self, value):
         """ select button according to the value """
@@ -260,7 +262,6 @@ class APIConfigSettingCard(ExpandGroupSettingCard):
 
 
 class ColorSettingCard(ExpandGroupSettingCard):
-
     colorChanged = pyqtSignal(QColor)
 
     def __init__(self, configItem: ColorConfigItem, icon: Union[str, QIcon, FluentIconBase], title: str,
@@ -364,4 +365,32 @@ class ColorSettingCard(ExpandGroupSettingCard):
         self.colorChanged.emit(color)
 
 
+def load_fernet_key():
+    key_file = 'resource/fernet_key'
+    if not os.path.exists(key_file):
+        key = Fernet.generate_key()
+        with open(key_file, 'wb') as file:
+            file.write(key)
+    else:
+        with open(key_file, 'rb') as file:
+            key = file.read()
+    return Fernet(key)
 
+
+def encrypt_text(text):
+    #
+    if text == "":
+        return ""
+    f = load_fernet_key()
+    return f.encrypt(text.encode()).decode()
+
+
+def decrypt_text(encrypted_text):
+    if encrypted_text == "":
+        return ""
+    f = load_fernet_key()
+    try:
+        return f.decrypt(encrypted_text.encode()).decode()
+    except Exception as e:
+        print("Decrypt error: ", e)
+        return ""

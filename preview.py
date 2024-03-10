@@ -1,11 +1,11 @@
-from io import BytesIO
+# from io import BytesIO
 import latex2mathml.converter
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import matplotlib
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QAction, QApplication
 from qfluentwidgets import (FluentIcon, PlainTextEdit, DropDownPushButton, RoundMenu, HeaderCardWidget,
-                            isDarkTheme, InfoBar)
+                            isDarkTheme, InfoBar, PushButton)
 from qframelesswindow.webengine import FramelessWebEngineView
 from PyQt5.QtGui import QFont, QImage, QPixmap
 
@@ -72,50 +72,34 @@ class OutputCard2(HeaderCardWidget):
         button1 = DropDownPushButton(FluentIcon.CODE, 'Copy Code')
         menu1 = RoundMenu()
         # copy latex
-        latexAction = QAction('LaTex', self)
-        latexAction.triggered.connect(self.copyLatex)
-        menu1.addAction(latexAction)
-        # copy html
-        htmlAction = QAction('HTML', self)
-        htmlAction.triggered.connect(self.copyHtml)
-        menu1.addAction(htmlAction)
+        latexAction1 = QAction('$ ... $', self)
+        latexAction1.triggered.connect(lambda: self.copyLatex('$ ... $'))
+        menu1.addAction(latexAction1)
+        latexAction2 = QAction('$$ ... $$', self)
+        latexAction2.triggered.connect(lambda: self.copyLatex('$$ ... $$'))
+        menu1.addAction(latexAction2)
+        latexAction3 = QAction('\[ ... \]', self)
+        latexAction3.triggered.connect(lambda: self.copyLatex('\\[ ... \\]'))
+        menu1.addAction(latexAction3)
+        latexAction4 = QAction('\( ... \)', self)
+        latexAction4.triggered.connect(lambda: self.copyLatex('\\( ... \\)'))
+        menu1.addAction(latexAction4)
+        latexAction5 = QAction('\\begin ... \\end', self)
+        latexAction5.triggered.connect(lambda: self.copyLatex('\\begin{equation} ... \\end{equation}'))
+        menu1.addAction(latexAction5)
 
         button1.setMenu(menu1)
         buttonsLayout.addWidget(button1)
 
-        button2 = DropDownPushButton(FluentIcon.IMAGE_EXPORT, 'Copy Image')
-        menu2 = RoundMenu()
-
-        # copy png
-        pngAction = QAction('PNG', self)
-        pngAction.triggered.connect(lambda: self.copyImage())
-        menu2.addAction(pngAction)
-        # copy jpg
-        jpgAction = QAction('JPG', self)
-        jpgAction.triggered.connect(lambda: self.copyImage())
-        menu2.addAction(jpgAction)
-        # copy svg
-        svgAction = QAction('SVG', self)
-        svgAction.triggered.connect(lambda: self.copyImage())
-        menu2.addAction(svgAction)
-
-        button2.setMenu(menu2)
+        # copy HTML
+        button2 = PushButton(FluentIcon.DOCUMENT, 'Copy HTML')
         buttonsLayout.addWidget(button2)
+        button2.clicked.connect(self.copyHtml)
 
-        button3 = DropDownPushButton(FluentIcon.DOCUMENT, 'Copy Word')
-        menu3 = RoundMenu()
-
-        # copy mathml
-        mathmlAction = QAction('MathML', self)
-        mathmlAction.triggered.connect(self.copyMathML)
-        menu3.addAction(mathmlAction)
-        # copy word
-        wordAction = QAction('Word', self)
-        wordAction.triggered.connect(self.copyWord)
-        menu3.addAction(wordAction)
-
-        button3.setMenu(menu3)
+        # copy MathML
+        button3 = PushButton(FluentIcon.ALIGNMENT, 'Copy MathML')
         buttonsLayout.addWidget(button3)
+        button3.clicked.connect(self.copyMathML)
 
         contentLayout.addLayout(buttonsLayout)
 
@@ -165,13 +149,28 @@ class OutputCard2(HeaderCardWidget):
         self.current_html = html_content
         self.webView.setHtml(html_content)
 
-    def copyLatex(self):
-        if self.current_latex:
-            clipboard = QApplication.clipboard()
-            clipboard.setText(self.current_latex)
-            self.successMessage("LaTex")
-        else:
+    def copyLatex(self, wrapper):
+        if not self.current_latex:
             self.warningMessage()
+            return
+
+        latex = self.current_latex.strip('$')
+
+        if wrapper == '$ ... $':
+            wrapped_latex = f"${latex}$"
+        elif wrapper == '$$ ... $$':
+            wrapped_latex = f"$${latex}$$"
+        elif wrapper == '\\[ ... \\]':
+            wrapped_latex = f"\\[{latex}\\]"
+        elif wrapper == '\\( ... \\)':
+            wrapped_latex = f"\\({latex}\\)"
+        elif wrapper == '\\begin{equation} ... \\end{equation}':
+            wrapped_latex = f"\\begin{{equation}}{latex}\\end{{equation}}"
+        else:
+            wrapped_latex = latex
+        clipboard = QApplication.clipboard()
+        clipboard.setText(wrapped_latex)
+        self.successMessage("LaTeX")
 
     def copyHtml(self):
         if self.current_latex:
@@ -180,35 +179,6 @@ class OutputCard2(HeaderCardWidget):
             self.successMessage("HTML")
         else:
             self.warningMessage()
-
-    @staticmethod
-    def latex2image(latex_expression, image_size_in=(3, 0.5), fontsize=16, dpi=200):
-        fig = plt.figure(figsize=image_size_in, dpi=dpi)
-        fig.text(x=0.5, y=0.5, s=latex_expression, horizontalalignment='center', verticalalignment='center',
-                 fontsize=fontsize)
-        fig.canvas.draw()
-
-        buf = BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
-        buf.seek(0)
-
-        qimg = QImage()
-        qimg.loadFromData(buf.getvalue(), 'PNG')
-        pixmap = QPixmap.fromImage(qimg)
-
-        return pixmap
-
-    def copyImage(self):
-        if not self.current_latex:
-            self.warningMessage()
-            return
-        user_input = self.parent().inputCard.editBox.toPlainText().strip()
-        latex = "$" + user_input + "$"
-        pixmap = self.latex2image(latex, image_size_in=(3, 0.5))
-        clipboard = QApplication.clipboard()
-        clipboard.setPixmap(pixmap)
-        self.successMessage("Image")
 
     def copyMathML(self):
         if self.current_latex:
@@ -219,10 +189,39 @@ class OutputCard2(HeaderCardWidget):
         else:
             self.warningMessage()
 
-    def copyWord(self):
-        word_code = self.latexToWord(self.current_latex)
-        clipboard = QApplication.clipboard()
-        clipboard.setText(word_code)
+    # @staticmethod
+    # def latex2image(latex_expression, image_size_in=(3, 0.5), fontsize=16, dpi=200):
+    #     fig = plt.figure(figsize=image_size_in, dpi=dpi)
+    #     fig.text(x=0.5, y=0.5, s=latex_expression, horizontalalignment='center', verticalalignment='center',
+    #              fontsize=fontsize)
+    #     fig.canvas.draw()
+    #
+    #     buf = BytesIO()
+    #     plt.savefig(buf, format='png')
+    #     plt.close(fig)
+    #     buf.seek(0)
+    #
+    #     qimg = QImage()
+    #     qimg.loadFromData(buf.getvalue(), 'PNG')
+    #     pixmap = QPixmap.fromImage(qimg)
+    #
+    #     return pixmap
+    #
+    # def copyImage(self):
+    #     if not self.current_latex:
+    #         self.warningMessage()
+    #         return
+    #     user_input = self.parent().inputCard.editBox.toPlainText().strip()
+    #     latex = "$" + user_input + "$"
+    #     pixmap = self.latex2image(latex, image_size_in=(3, 0.5))
+    #     clipboard = QApplication.clipboard()
+    #     clipboard.setPixmap(pixmap)
+    #     self.successMessage("Image")
+    #
+    # def copyWord(self):
+    #     word_code = self.latexToWord(self.current_latex)
+    #     clipboard = QApplication.clipboard()
+    #     clipboard.setText(word_code)
 
     def warningMessage(self):
         InfoBar.warning(
