@@ -42,7 +42,7 @@ class InputCard1(HeaderCardWidget):
 
     def __init__(self):
         super().__init__()
-        self.setTitle("Input")
+        self.setTitle(self.tr("Input"))
         self.pivot = SegmentedToggleToolWidget(self)
         self.stackedWidget = QStackedWidget(self)
 
@@ -62,8 +62,8 @@ class InputCard1(HeaderCardWidget):
         contentLayout.addWidget(self.stackedWidget)
 
         self.viewLayout.addLayout(contentLayout)
-        self.clearButton = PushButton(FluentIcon.DELETE, 'Clear')
-        self.recognizeButton = PrimaryPushButton(FluentIcon.VIEW, 'Recognize')
+        self.clearButton = PushButton(FluentIcon.DELETE, self.tr("Clear"))
+        self.recognizeButton = PrimaryPushButton(FluentIcon.VIEW, self.tr("Recognize"))
         self.clearButton.setFixedWidth(150)
         self.recognizeButton.setFixedWidth(150)
 
@@ -117,8 +117,8 @@ class InputCard1(HeaderCardWidget):
             access_key_secret = decrypt_text(cfg.apiKey.value)
             if not access_key_id or not access_key_secret:
                 InfoBar.warning(
-                    title='API Info Required',
-                    content="Please fill in valid API ID and Key in the settings.",
+                    title=self.tr("API Info Required"),
+                    content=self.tr("Please fill in valid API ID and Key in the settings."),
                     parent=self.parent()
                 ).show()
                 return
@@ -131,8 +131,8 @@ class InputCard1(HeaderCardWidget):
                     self.parent().output.displayRecognitionResult(recognition_result)
                 else:
                     InfoBar.error(
-                        title='Recognition Failed',
-                        content='Please check the Network and API settings.',
+                        title=self.tr("Recognition Failed"),
+                        content=self.tr("Please check the Network and API settings."),
                         parent=self.parent()
                     ).show()
             except ValueError as e:
@@ -143,8 +143,8 @@ class InputCard1(HeaderCardWidget):
                 ).show()
         else:
             InfoBar.warning(
-                title='Empty',
-                content="No content to recognize.",
+                title=self.tr("Empty"),
+                content=self.tr("No content to recognize."),
                 parent=self.parent()
             ).show()
 
@@ -158,7 +158,7 @@ class UploadBox(SimpleCardWidget):
         self.initUI()
 
     def initUI(self):
-        self.textLabel = BodyLabel("Click to Upload / Drag & Drop / Paste (Ctrl + V) \n an Image Here", self)
+        self.textLabel = BodyLabel(self.tr("Click to Upload / Drag & Drop / Paste (Ctrl + V)  an Image Here"), self)
         self.textLabel.setAlignment(Qt.AlignCenter)
 
         self.imageLabel = ImageLabel(parent=self)
@@ -189,7 +189,8 @@ class UploadBox(SimpleCardWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            fileName, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)")
+            fileName, _ = QFileDialog.getOpenFileName(self, self.tr("Open Image"), "", self.tr("Image Files (*.png "
+                                                                                               "*.jpg *.bmp)"))
             if fileName:
                 # load image from path
                 image = QImage(fileName)
@@ -216,7 +217,11 @@ class UploadBox(SimpleCardWidget):
 
     def switchToImageLabel(self, pixmap):
         if pixmap.isNull():
-            QMessageBox.warning(self, "Image Load Error", "Could not load the image.")
+            InfoBar.warning(
+                title=self.tr("Image Load Error"),
+                content=self.tr("Could not load the image."),
+                parent=self.parent()
+            ).show()
             return
 
         scaledPixmap = self.scaleToSize(pixmap, 510, 180)
@@ -311,7 +316,7 @@ class HandwritingBoard(SimpleCardWidget):
 class OutputCard1(HeaderCardWidget):
     def __init__(self):
         super().__init__()
-        self.setTitle('Output')
+        self.setTitle(self.tr("Output"))
 
         contentLayout = QVBoxLayout()
         self.textEdit = PlainTextEdit()
@@ -322,7 +327,7 @@ class OutputCard1(HeaderCardWidget):
         self.textEdit.setFont(font)
         contentLayout.addWidget(self.textEdit)
 
-        self.copyButton = PushButton(FluentIcon.COPY, 'Copy')
+        self.copyButton = PushButton(FluentIcon.COPY, self.tr("Copy"))
         self.copyButton.setFixedWidth(150)
         self.copyButton.clicked.connect(self.copyResult)
         buttonLayout = QHBoxLayout()
@@ -353,13 +358,13 @@ class OutputCard1(HeaderCardWidget):
             clipboard = QApplication.clipboard()
             clipboard.setText(text)
             InfoBar.success(
-                title='Copied',
-                content="Text copied to clipboard.",
+                title=self.tr("Copied"),
+                content=self.tr("Text copied to clipboard."),
                 parent=self.parent()
             ).show()
         else:
             InfoBar.warning(
-                title='No Text',
-                content="There is no text to copy.",
+                title=self.tr("No Text"),
+                content=self.tr("There is no text to copy."),
                 parent=self.parent()
             ).show()

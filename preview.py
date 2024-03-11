@@ -31,7 +31,7 @@ class PreviewInterface(QWidget):
 class InputCard2(HeaderCardWidget):
     def __init__(self):
         super().__init__()
-        self.setTitle("Input")
+        self.setTitle(self.tr("Input"))
         font = QFont()
         font.setFamily("Consolas")
         font.setPointSize(15)
@@ -55,7 +55,7 @@ class OutputCard2(HeaderCardWidget):
         super().__init__()
         self.current_latex = None
         self.current_html = None
-        self.setTitle("Output")
+        self.setTitle(self.tr("Output"))
         contentLayout = QVBoxLayout()
 
         # WebEngine
@@ -69,7 +69,7 @@ class OutputCard2(HeaderCardWidget):
 
         buttonsLayout = QHBoxLayout()
         # buttons
-        button1 = DropDownPushButton(FluentIcon.CODE, 'Copy Code')
+        button1 = DropDownPushButton(FluentIcon.CODE, self.tr("Copy LaTex"))
         menu1 = RoundMenu()
         # copy latex
         latexAction1 = QAction('$ ... $', self)
@@ -92,12 +92,12 @@ class OutputCard2(HeaderCardWidget):
         buttonsLayout.addWidget(button1)
 
         # copy HTML
-        button2 = PushButton(FluentIcon.DOCUMENT, 'Copy HTML')
+        button2 = PushButton(FluentIcon.DOCUMENT, self.tr("Copy HTML"))
         buttonsLayout.addWidget(button2)
         button2.clicked.connect(self.copyHtml)
 
         # copy MathML
-        button3 = PushButton(FluentIcon.ALIGNMENT, 'Copy MathML')
+        button3 = PushButton(FluentIcon.ALIGNMENT, self.tr("Copy MathML"))
         buttonsLayout.addWidget(button3)
         button3.clicked.connect(self.copyMathML)
 
@@ -225,14 +225,15 @@ class OutputCard2(HeaderCardWidget):
 
     def warningMessage(self):
         InfoBar.warning(
-            title='Empty',
-            content="There is no content to copy.",
+            title=self.tr("Empty"),
+            content=self.tr("No content to copy."),
             parent=self.parent()
         ).show()
 
     def successMessage(self, content):
+        translatedContent = self.tr("{content} copied to clipboard.").format(content=content)
         InfoBar.success(
-            title='Copied',
-            content=f"{content} copied to clipboard.",
+            title=self.tr("Copied"),
+            content=translatedContent,
             parent=self.parent()
         ).show()

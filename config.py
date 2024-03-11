@@ -6,8 +6,8 @@ from qfluentwidgets import (QConfig, ConfigSerializer, OptionsConfigItem, Option
 
 
 class Language(Enum):
-    CHINESE_SIMPLIFIED = QLocale(QLocale.Chinese, QLocale.China)
     ENGLISH = QLocale(QLocale.English)
+    CHINESE_SIMPLIFIED = QLocale(QLocale.Chinese, QLocale.China)
     AUTO = QLocale()
 
 class API(Enum):
@@ -21,6 +21,7 @@ class LanguageSerializer(ConfigSerializer):
 
     def deserialize(self, value: str):
         return Language(QLocale(value)) if value != "Auto" else Language.AUTO
+
 
 class Config(QConfig):
 

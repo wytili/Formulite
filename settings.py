@@ -9,7 +9,7 @@ from qfluentwidgets import (ScrollArea, SettingCardGroup, OptionsSettingCard, Sw
                             HyperlinkCard, PrimaryPushSettingCard, RadioButton, setTheme, setThemeColor, isDarkTheme,
                             LineEdit, PasswordLineEdit, ExpandGroupSettingCard, OptionsConfigItem,
                             Theme, ExpandLayout, ColorDialog, qconfig,
-                            ColorConfigItem, FluentIconBase)
+                            ColorConfigItem, FluentIconBase, ComboBoxSettingCard, InfoBar)
 from qfluentwidgets import FluentIcon as FIF
 
 from config import cfg, API, EMAIL, URL, AUTHOR, VERSION, YEAR
@@ -26,14 +26,14 @@ class SettingInterface(ScrollArea):
         self.setWidgetResizable(True)
 
         # Personalization group
-        self.personalizationGroup = SettingCardGroup("Personalization", self.scrollWidget)
+        self.personalizationGroup = SettingCardGroup(self.tr("Personalization"), self.scrollWidget)
 
         self.themeCard = OptionsSettingCard(
             cfg.themeMode,
             FIF.BRUSH,
-            "Application theme",
-            "Change the appearance of your application",
-            texts=['Light', 'Dark', 'Use system setting'],
+            self.tr("Application theme"),
+            self.tr("Change the appearance of your application"),
+            texts=[self.tr("Light"), self.tr("Dark"), self.tr("Use system setting")],
             parent=self.personalizationGroup
         )
 
@@ -45,57 +45,57 @@ class SettingInterface(ScrollArea):
             parent=self.personalizationGroup
         )
 
-        self.languageCard = OptionsSettingCard(
+        self.languageCard = ComboBoxSettingCard(
             cfg.language,
             FIF.LANGUAGE,
-            "Language",
-            "Set your preferred language for UI",
-            texts=['English', '简体中文', 'Use system setting'],
+            self.tr("Language"),
+            self.tr("Set your preferred language for UI"),
+            texts=['English', '简体中文', self.tr('Use system setting')],
             parent=self.personalizationGroup
         )
 
         # Main Panel group
-        self.mainPanelGroup = SettingCardGroup("Main Panel", self.scrollWidget)
+        self.mainPanelGroup = SettingCardGroup(self.tr("Main Panel"), self.scrollWidget)
 
         self.minimizeToTrayCard = SwitchSettingCard(
             FIF.MINIMIZE,
-            "Minimize to tray after closing",
-            "Formulite will continue to run in the background",
+            self.tr("Minimize to tray after closing"),
+            self.tr("Formulite will continue to run in the background"),
             configItem=cfg.minimizeToTray,
             parent=self.mainPanelGroup
         )
 
         # Configuration group
-        self.configurationGroup = SettingCardGroup("Configuration", self.scrollWidget)
+        self.configurationGroup = SettingCardGroup(self.tr("Configuration"), self.scrollWidget)
         self.apiConfigCard = APIConfigSettingCard(
             cfg.apiService,
             FIF.ROBOT,
-            "API service",
-            "Configure the API service for LaTeX recognition",
+            self.tr("API service"),
+            self.tr("Configure the API service for LaTeX recognition"),
             parent=self.configurationGroup
         )
 
         # About group
-        self.aboutGroup = SettingCardGroup("About", self.scrollWidget)
+        self.aboutGroup = SettingCardGroup(self.tr("About"), self.scrollWidget)
         self.helpCard = HyperlinkCard(
             URL,
-            "Open help page",
+            self.tr("Open help page"),
             FIF.HELP,
-            "Help",
-            "Discover new features and learn useful tips about Formulite",
+            self.tr("Help"),
+            self.tr("Discover new features and learn useful tips about Formulite"),
             self.aboutGroup
         )
         self.feedbackCard = PrimaryPushSettingCard(
-            "Provide feedback",
+            self.tr("Provide feedback"),
             FIF.FEEDBACK,
-            "Provide feedback",
-            "Help us improve Formulite by providing feedback",
+            self.tr("Provide feedback"),
+            self.tr("Help us improve Formulite by providing feedback"),
             self.aboutGroup
         )
         self.aboutCard = PrimaryPushSettingCard(
-            "Check update",
+            self.tr("About us"),
             FIF.INFO,
-            "About",
+            self.tr("About"),
             '© ' + self.tr('Copyright') + f" {YEAR}, {AUTHOR}. " +
             self.tr('Version') + f" {VERSION}",
             self.aboutGroup
@@ -136,6 +136,14 @@ class SettingInterface(ScrollArea):
         self.expandLayout.addWidget(self.configurationGroup)
         self.expandLayout.addWidget(self.aboutGroup)
 
+    def __showRestartTooltip(self):
+        """ show restart tooltip """
+        InfoBar.warning(
+            self.tr('Setting changed'),
+            self.tr('Configuration takes effect after restart'),
+            parent=self.parent()
+        )
+
     def __onThemeChanged(self, theme: Theme):
         setTheme(theme)
         self.__setQss()
@@ -147,9 +155,9 @@ class SettingInterface(ScrollArea):
             self.setStyleSheet(f.read())
 
     def __connectSignalToSlot(self):
+        cfg.appRestartSig.connect(self.__showRestartTooltip)
         cfg.themeChanged.connect(self.__onThemeChanged)
         self.themeColorCard.colorChanged.connect(setThemeColor)
-        #     self.languageCard.optionChanged.connect(self.onLanguageChanged)
         self.minimizeToTrayCard.checkedChanged.connect(self.minimizeToTrayChanged)
         self.feedbackCard.clicked.connect(lambda: QDesktopServices.openUrl(
             QUrl(f"mailto:{EMAIL}?subject=Formulite%20Feedback&body=Here%20is%20my%20feedback%20about"
@@ -169,7 +177,7 @@ class APIConfigSettingCard(ExpandGroupSettingCard):
         self.radioLayout = QVBoxLayout(self.radioWidget)
         self.apiButton1 = RadioButton(self.tr('SimpleTex'), self.radioWidget)
         self.apiButton2 = RadioButton(self.tr('TencentCloud'), self.radioWidget)
-        self.apiButton3 = RadioButton(self.tr('AliYun'), self.radioWidget)
+        self.apiButton3 = RadioButton(self.tr('Aliyun'), self.radioWidget)
         self.buttonGroup = QButtonGroup(self)
 
         self.apiInfoWidget = QWidget(self.view)
@@ -378,7 +386,6 @@ def load_fernet_key():
 
 
 def encrypt_text(text):
-    #
     if text == "":
         return ""
     f = load_fernet_key()

@@ -1,14 +1,14 @@
 import sys
-from PyQt5.QtCore import Qt, QEvent, QTimer, QSize
+from PyQt5.QtCore import Qt, QEvent, QTimer, QSize, QTranslator
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QStackedWidget, QHBoxLayout, QLabel, QWidget, QVBoxLayout
 
 from qfluentwidgets import (NavigationItemPosition, isDarkTheme, setTheme, Theme, NavigationToolButton, NavigationPanel,
-                            qconfig, SplashScreen)
+                            qconfig, SplashScreen, FluentTranslator)
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
-from config import cfg
+from config import cfg, Language
 from recognition import RecognitionInterface
 from preview import PreviewInterface
 from settings import SettingInterface
@@ -106,7 +106,7 @@ class Window(FramelessWindow):
         # create sub interface
         self.recognitionInterface = RecognitionInterface()
         self.previewInterface = PreviewInterface()
-        self.historyInterface = Widget('To be finished...', self)
+        self.historyInterface = Widget(self.tr("To be finished..."), self)
         self.settingInterface = SettingInterface()
 
         self.stackWidget.addWidget(self.recognitionInterface)
@@ -133,19 +133,19 @@ class Window(FramelessWindow):
         self.vBoxLayout.setStretchFactor(self.stackWidget, 1)
 
     def initNavigation(self):
-        self.addSubInterface(self.recognitionInterface, FIF.FIT_PAGE, 'Formula Recognition')
-        self.addSubInterface(self.previewInterface, FIF.COMMAND_PROMPT, 'Formula Preview')
-        self.addSubInterface(self.historyInterface, FIF.HISTORY, 'History')
+        self.addSubInterface(self.recognitionInterface, FIF.FIT_PAGE, self.tr("Formula Recognition"))
+        self.addSubInterface(self.previewInterface, FIF.COMMAND_PROMPT, self.tr("Formula Preview"))
+        self.addSubInterface(self.historyInterface, FIF.HISTORY, self.tr("History"))
         # add item to bottom
         self.navigationInterface.addItem(
             routeKey='switch-theme',
             icon=FIF.CONSTRACT,
-            text='Switch Theme',
+            text=self.tr("Switch Theme"),
             onClick=self.switchTheme,
             selectable=False,
             position=NavigationItemPosition.BOTTOM
         )
-        self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.settingInterface, FIF.SETTING, self.tr("Settings"), NavigationItemPosition.BOTTOM)
 
         self.stackWidget.currentChanged.connect(self.onCurrentInterfaceChanged)
         self.stackWidget.setCurrentIndex(0)
@@ -203,6 +203,17 @@ if __name__ == '__main__':
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     app = QApplication(sys.argv)
+
+    language = cfg.get(cfg.language).value
+
+    fluentTranslator = FluentTranslator(language)
+    translator = QTranslator()
+    translator.load(language, "", "", "resource/i18n")
+
+    app.installTranslator(fluentTranslator)
+    app.installTranslator(translator)
+
     w = Window()
     w.show()
     app.exec_()
+
