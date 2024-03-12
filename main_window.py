@@ -8,7 +8,7 @@ from qfluentwidgets import (NavigationItemPosition, isDarkTheme, setTheme, Theme
 from qfluentwidgets import FluentIcon as FIF
 from qframelesswindow import FramelessWindow, StandardTitleBar
 
-from config import cfg, Language
+from config import cfg
 from recognition import RecognitionInterface
 from preview import PreviewInterface
 from settings import SettingInterface
@@ -89,7 +89,11 @@ class Window(FramelessWindow):
     def __init__(self):
         super().__init__()
 
-        self.splashScreen = SplashScreen(QIcon('resource/logo.png'), self)
+        if sys.platform == "win32":  # taskbar icon
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Formulite")
+
+        self.splashScreen = SplashScreen(QIcon('resource/logo.ico'), self)
         self.splashScreen.setIconSize(QSize(100, 100))
         self.splashScreen.show()
 
@@ -164,7 +168,7 @@ class Window(FramelessWindow):
 
     def initWindow(self):
         self.resize(600, 800)
-        self.setWindowIcon(QIcon('resource/logo.png'))
+        self.setWindowIcon(QIcon('resource/logo.ico'))
         self.setWindowTitle('Formulite')
         self.titleBar.setAttribute(Qt.WA_StyledBackground)
 
@@ -192,7 +196,7 @@ class Window(FramelessWindow):
 
     def setQss(self):
         color = 'dark' if isDarkTheme() else 'light'
-        with open(f'resource/{color}/demo.qss', encoding='utf-8') as f:
+        with open(f'resource/{color}.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
 
@@ -208,7 +212,7 @@ if __name__ == '__main__':
 
     fluentTranslator = FluentTranslator(language)
     translator = QTranslator()
-    translator.load(language, "", "", "resource/i18n")
+    translator.load(language, "", "", "resource")
 
     app.installTranslator(fluentTranslator)
     app.installTranslator(translator)

@@ -16,7 +16,6 @@ from config import cfg, API, EMAIL, URL, AUTHOR, VERSION, YEAR
 
 
 class SettingInterface(ScrollArea):
-    minimizeToTrayChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -52,17 +51,6 @@ class SettingInterface(ScrollArea):
             self.tr("Set your preferred language for UI"),
             texts=['English', '简体中文', self.tr('Use system setting')],
             parent=self.personalizationGroup
-        )
-
-        # Main Panel group
-        self.mainPanelGroup = SettingCardGroup(self.tr("Main Panel"), self.scrollWidget)
-
-        self.minimizeToTrayCard = SwitchSettingCard(
-            FIF.MINIMIZE,
-            self.tr("Minimize to tray after closing"),
-            self.tr("Formulite will continue to run in the background"),
-            configItem=cfg.minimizeToTray,
-            parent=self.mainPanelGroup
         )
 
         # Configuration group
@@ -122,7 +110,6 @@ class SettingInterface(ScrollArea):
         self.personalizationGroup.addSettingCard(self.themeCard)
         self.personalizationGroup.addSettingCard(self.themeColorCard)
         self.personalizationGroup.addSettingCard(self.languageCard)
-        self.mainPanelGroup.addSettingCard(self.minimizeToTrayCard)
         self.configurationGroup.addSettingCard(self.apiConfigCard)
         self.aboutGroup.addSettingCard(self.helpCard)
         self.aboutGroup.addSettingCard(self.feedbackCard)
@@ -132,7 +119,6 @@ class SettingInterface(ScrollArea):
         self.expandLayout.setSpacing(20)
         self.expandLayout.setContentsMargins(60, 0, 60, 0)
         self.expandLayout.addWidget(self.personalizationGroup)
-        self.expandLayout.addWidget(self.mainPanelGroup)
         self.expandLayout.addWidget(self.configurationGroup)
         self.expandLayout.addWidget(self.aboutGroup)
 
@@ -151,14 +137,13 @@ class SettingInterface(ScrollArea):
     def __setQss(self):
         self.scrollWidget.setObjectName('scrollWidget')
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'resource/{theme}/demo.qss', 'r') as f:
+        with open(f'resource/{theme}.qss', 'r') as f:
             self.setStyleSheet(f.read())
 
     def __connectSignalToSlot(self):
         cfg.appRestartSig.connect(self.__showRestartTooltip)
         cfg.themeChanged.connect(self.__onThemeChanged)
         self.themeColorCard.colorChanged.connect(setThemeColor)
-        self.minimizeToTrayCard.checkedChanged.connect(self.minimizeToTrayChanged)
         self.feedbackCard.clicked.connect(lambda: QDesktopServices.openUrl(
             QUrl(f"mailto:{EMAIL}?subject=Formulite%20Feedback&body=Here%20is%20my%20feedback%20about"
                  "%20Formulite: ")))

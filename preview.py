@@ -1,16 +1,12 @@
-# from io import BytesIO
 import latex2mathml.converter
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
-# import matplotlib.pyplot as plt
-import matplotlib
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QAction, QApplication
 from qfluentwidgets import (FluentIcon, PlainTextEdit, DropDownPushButton, RoundMenu, HeaderCardWidget,
                             isDarkTheme, InfoBar, PushButton)
-from qframelesswindow.webengine import FramelessWebEngineView
-from PyQt5.QtGui import QFont, QImage, QPixmap
+from PyQt5.QtGui import QFont
 
 from config import cfg
-matplotlib.rcParams["mathtext.fontset"] = "cm"
 
 
 class PreviewInterface(QWidget):
@@ -59,7 +55,7 @@ class OutputCard2(HeaderCardWidget):
         contentLayout = QVBoxLayout()
 
         # WebEngine
-        self.webView = FramelessWebEngineView(self)
+        self.webView = QWebEngineView(self)
         self.webView.setFixedHeight(230)
         contentLayout.addWidget(self.webView)
         self.viewLayout.addLayout(contentLayout)
@@ -188,40 +184,6 @@ class OutputCard2(HeaderCardWidget):
             self.successMessage("MathML")
         else:
             self.warningMessage()
-
-    # @staticmethod
-    # def latex2image(latex_expression, image_size_in=(3, 0.5), fontsize=16, dpi=200):
-    #     fig = plt.figure(figsize=image_size_in, dpi=dpi)
-    #     fig.text(x=0.5, y=0.5, s=latex_expression, horizontalalignment='center', verticalalignment='center',
-    #              fontsize=fontsize)
-    #     fig.canvas.draw()
-    #
-    #     buf = BytesIO()
-    #     plt.savefig(buf, format='png')
-    #     plt.close(fig)
-    #     buf.seek(0)
-    #
-    #     qimg = QImage()
-    #     qimg.loadFromData(buf.getvalue(), 'PNG')
-    #     pixmap = QPixmap.fromImage(qimg)
-    #
-    #     return pixmap
-    #
-    # def copyImage(self):
-    #     if not self.current_latex:
-    #         self.warningMessage()
-    #         return
-    #     user_input = self.parent().inputCard.editBox.toPlainText().strip()
-    #     latex = "$" + user_input + "$"
-    #     pixmap = self.latex2image(latex, image_size_in=(3, 0.5))
-    #     clipboard = QApplication.clipboard()
-    #     clipboard.setPixmap(pixmap)
-    #     self.successMessage("Image")
-    #
-    # def copyWord(self):
-    #     word_code = self.latexToWord(self.current_latex)
-    #     clipboard = QApplication.clipboard()
-    #     clipboard.setText(word_code)
 
     def warningMessage(self):
         InfoBar.warning(

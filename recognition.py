@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, QByteArray, QBuffer, QTimer
 from PyQt5.QtWidgets import (QWidget, QStackedWidget, QHBoxLayout, QApplication,
-                             QVBoxLayout, QFileDialog, QMessageBox)
+                             QVBoxLayout, QFileDialog)
 from qfluentwidgets import FluentIcon, SegmentedToggleToolWidget, PlainTextEdit, ImageLabel, \
     BodyLabel, HeaderCardWidget, SimpleCardWidget, PushButton, PrimaryPushButton, InfoBar
 from PyQt5.QtGui import QPainter, QPen, QPixmap, QImage, QFont, QKeySequence

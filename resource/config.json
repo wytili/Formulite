@@ -5,8 +5,7 @@
         "Service": "Aliyun"
     },
     "MainWindow": {
-        "Language": "Auto",
-        "MinimizeToTray": true
+        "Language": "en_US"
     },
     "QFluentWidgets": {
         "ThemeColor": "#ff0078d4",

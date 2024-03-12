@@ -203,18 +203,6 @@
         <translation>设置UI的首选语言</translation>
     </message>
     <message>
-        <source>Main Panel</source>
-        <translation>主面板</translation>
-    </message>
-    <message>
-        <source>Minimize to tray after closing</source>
-        <translation>关闭后最小化到托盘</translation>
-    </message>
-    <message>
-        <source>Formulite will continue to run in the background</source>
-        <translation>Formulite将继续在后台运行</translation>
-    </message>
-    <message>
         <source>Configuration</source>
         <translation>配置</translation>
     </message>

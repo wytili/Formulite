@@ -2,7 +2,7 @@ from enum import Enum
 
 from PyQt5.QtCore import QLocale
 from qfluentwidgets import (QConfig, ConfigSerializer, OptionsConfigItem, OptionsValidator, qconfig,
-                            ConfigItem, BoolValidator, EnumSerializer)
+                            ConfigItem, EnumSerializer)
 
 
 class Language(Enum):
@@ -25,14 +25,11 @@ class LanguageSerializer(ConfigSerializer):
 
 class Config(QConfig):
 
-    minimizeToTray = ConfigItem(
-        "MainWindow", "MinimizeToTray", True, BoolValidator())
-
     language = OptionsConfigItem(
-        "MainWindow", "Language", Language.AUTO, OptionsValidator(Language), LanguageSerializer(), restart=True)
+        "MainWindow", "Language", Language.ENGLISH, OptionsValidator(Language), LanguageSerializer(), restart=True)
 
     apiService = OptionsConfigItem(
-        "API", "Service", API.ALIYUN, OptionsValidator(API), EnumSerializer(API), restart=True)
+        "API", "Service", API.ALIYUN, OptionsValidator(API), EnumSerializer(API))
 
     apiId = ConfigItem(
         "API", "ID", "")
