@@ -21,6 +21,7 @@ class RecognitionInterface(QWidget):
         layout.addWidget(self.input)
         layout.addWidget(self.output)
         self.setLayout(layout)
+        self.setFocusPolicy(Qt.StrongFocus)
         QTimer.singleShot(0, self.input.uploadInterface.setFocus)
 
     def keyPressEvent(self, event):
@@ -34,8 +35,26 @@ class RecognitionInterface(QWidget):
         mimeData = clipboard.mimeData()
         if mimeData.hasImage():
             image = QImage(mimeData.imageData())
-            if not image.isNull():
-                self.input.uploadInterface.setImage(image)
+            self.input.uploadInterface.setImage(image)
+        elif mimeData.hasUrls():
+            urls = mimeData.urls()
+            if urls:
+                path = urls[0].toLocalFile()
+                image = QImage(path)
+                if not image.isNull():
+                    self.input.uploadInterface.setImage(image)
+                else:
+                    InfoBar.warning(
+                        title=self.tr("Error"),
+                        content=self.tr("Cannot load image from path."),
+                        parent=self
+                    ).show()
+        else:
+            InfoBar.warning(
+                title=self.tr("Error"),
+                content=self.tr("No image in clipboard."),
+                parent=self
+            ).show()
 
 
 class InputCard1(HeaderCardWidget):
